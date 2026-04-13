@@ -15,8 +15,8 @@
     "package-win": "npm run build && electron-builder build --win"
   },
   "build": {
-    "appId": "com.chunginlee.interviewcoder",
-    "productName": "Interview Coder",
+    "appId": "com.screenshotanalysis.app",
+    "productName": "Screenshot Analysis",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",

@@ -10,15 +10,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onOpenSettings }) 
     <div className="bg-black min-h-screen flex flex-col items-center justify-center p-6">
       <div className="max-w-md w-full bg-black border border-white/10 rounded-xl p-6 shadow-lg">
         <h1 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-          <span>Interview Coder</span>
+          <span>Screenshot Analysis</span>
           <span className="text-sm font-normal px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-md">Unlocked Edition</span>
         </h1>
         
         <div className="mb-8">
-          <h2 className="text-lg font-medium text-white mb-3">Welcome to Interview Coder</h2>
+          <h2 className="text-lg font-medium text-white mb-3">Welcome to Screenshot Analysis</h2>
           <p className="text-white/70 text-sm mb-4">
-            This application helps you ace technical interviews by providing AI-powered
-            solutions to coding problems.
+            This application analyzes your screenshots using AI to provide thorough
+            answers and insights for anything you capture.
           </p>
           <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4">
             <h3 className="text-white/90 font-medium mb-2">Global Shortcuts</h3>
@@ -65,7 +65,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onOpenSettings }) 
         </div>
         
         <div className="text-white/40 text-xs text-center">
-          Start by taking screenshots of your coding problem (Ctrl+H / Cmd+H)
+          Start by taking screenshots of anything you want analyzed (Ctrl+H / Cmd+H)
         </div>
       </div>
     </div>

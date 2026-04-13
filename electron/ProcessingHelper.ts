@@ -476,15 +476,15 @@ export class ProcessingHelper {
         // Use OpenAI for processing
         const messages = [
           {
-            role: "system" as const, 
-            content: "You are a coding challenge interpreter. Analyze the screenshot of the coding problem and extract all relevant information. Return the information in JSON format with these fields: problem_statement, constraints, example_input, example_output. Just return the structured JSON without any other text."
+            role: "system" as const,
+            content: "You are a general-purpose visual analysis assistant. Analyze the screenshot(s) and extract all relevant information shown. Return the information in JSON format with these fields: query_description (a full description of what is shown or asked), context (any relevant context, constraints, or details), example_input (if applicable, otherwise empty string), example_output (if applicable, otherwise empty string). Just return the structured JSON without any other text."
           },
           {
             role: "user" as const,
             content: [
               {
-                type: "text" as const, 
-                text: `Extract the coding problem details from these screenshots. Return in JSON format. Preferred coding language we gonna use for this problem is ${language}.`
+                type: "text" as const,
+                text: `Analyze these screenshots and return a JSON with fields: query_description, context, example_input, example_output.`
               },
               ...imageDataList.map(data => ({
                 type: "image_url" as const,
@@ -531,7 +531,7 @@ export class ProcessingHelper {
               role: "user",
               parts: [
                 {
-                  text: `You are a coding challenge interpreter. Analyze the screenshots of the coding problem and extract all relevant information. Return the information in JSON format with these fields: problem_statement, constraints, example_input, example_output. Just return the structured JSON without any other text. Preferred coding language we gonna use for this problem is ${language}.`
+                  text: `You are a general-purpose visual analysis assistant. Analyze the screenshots and extract all relevant information shown. Return the information in JSON format with these fields: query_description (a full description of what is shown or asked), context (any relevant context, constraints, or details), example_input (if applicable, otherwise empty string), example_output (if applicable, otherwise empty string). Just return the structured JSON without any other text.`
                 },
                 ...imageDataList.map(data => ({
                   inlineData: {
@@ -589,7 +589,7 @@ export class ProcessingHelper {
               content: [
                 {
                   type: "text" as const,
-                  text: `Extract the coding problem details from these screenshots. Return in JSON format with these fields: problem_statement, constraints, example_input, example_output. Preferred coding language is ${language}.`
+                  text: `Analyze these screenshots and return a JSON with these fields: query_description (a full description of what is shown or asked), context (any relevant context, constraints, or details), example_input (if applicable, otherwise empty string), example_output (if applicable, otherwise empty string). Just return the structured JSON without any other text.`
                 },
                 ...imageDataList.map(data => ({
                   type: "image" as const,
@@ -606,6 +606,7 @@ export class ProcessingHelper {
           const response = await this.anthropicClient.messages.create({
             model: config.extractionModel || "claude-sonnet-4-6",
             max_tokens: 4000,
+            system: "You are a general-purpose visual analysis assistant. Analyze the screenshot(s) and extract all relevant information shown. Return the information in JSON format with these fields: query_description (a full description of what is shown or asked), context (any relevant context, constraints, or details), example_input (if applicable, otherwise empty string), example_output (if applicable, otherwise empty string). Just return the structured JSON without any other text.",
             messages: messages,
             temperature: 0.2
           });
@@ -733,33 +734,27 @@ export class ProcessingHelper {
         });
       }
 
-      // Create prompt for solution generation
+      // Create prompt for response generation
       const promptText = `
-Generate a detailed solution for the following coding problem:
+Provide a thorough response/answer to the following query based on the screenshot analysis:
 
-PROBLEM STATEMENT:
-${problemInfo.problem_statement}
+QUERY DESCRIPTION:
+${problemInfo.query_description}
 
-CONSTRAINTS:
-${problemInfo.constraints || "No specific constraints provided."}
+CONTEXT:
+${problemInfo.context || "No additional context provided."}
 
 EXAMPLE INPUT:
-${problemInfo.example_input || "No example input provided."}
+${problemInfo.example_input || "Not applicable."}
 
 EXAMPLE OUTPUT:
-${problemInfo.example_output || "No example output provided."}
-
-LANGUAGE: ${language}
+${problemInfo.example_output || "Not applicable."}
 
 I need the response in the following format:
-1. Code: A clean, optimized implementation in ${language}
+1. Response: A thorough and complete answer or solution to what is shown/asked
 2. Your Thoughts: A list of key insights and reasoning behind your approach
-3. Time complexity: O(X) with a detailed explanation (at least 2 sentences)
-4. Space complexity: O(X) with a detailed explanation (at least 2 sentences)
-
-For complexity explanations, please be thorough. For example: "Time complexity: O(n) because we iterate through the array only once. This is optimal as we need to examine each element at least once to find the solution." or "Space complexity: O(n) because in the worst case, we store all elements in the hashmap. The additional space scales linearly with the input size."
-
-Your solution should be efficient, well-commented, and handle edge cases.
+3. Time complexity: If applicable, O(X) with a detailed explanation; otherwise "N/A - not applicable for this type of query"
+4. Space complexity: If applicable, O(X) with a detailed explanation; otherwise "N/A - not applicable for this type of query"
 `;
 
       let responseContent;
@@ -777,7 +772,7 @@ Your solution should be efficient, well-commented, and handle edge cases.
         const solutionResponse = await this.openaiClient.chat.completions.create({
           model: config.solutionModel || "gpt-4o",
           messages: [
-            { role: "system", content: "You are an expert coding interview assistant. Provide clear, optimal solutions with detailed explanations." },
+            { role: "system", content: "You are a general-purpose visual analysis assistant. Provide thorough, clear responses to whatever is shown or asked in the screenshots." },
             { role: "user", content: promptText }
           ],
           max_tokens: 4000,
@@ -801,7 +796,7 @@ Your solution should be efficient, well-commented, and handle edge cases.
               role: "user",
               parts: [
                 {
-                  text: `You are an expert coding interview assistant. Provide a clear, optimal solution with detailed explanations for this problem:\n\n${promptText}`
+                  text: `You are a general-purpose visual analysis assistant. Provide a thorough, clear response to whatever is shown or asked:\n\n${promptText}`
                 }
               ]
             }
@@ -850,7 +845,7 @@ Your solution should be efficient, well-commented, and handle edge cases.
               content: [
                 {
                   type: "text" as const,
-                  text: `You are an expert coding interview assistant. Provide a clear, optimal solution with detailed explanations for this problem:\n\n${promptText}`
+                  text: `You are a general-purpose visual analysis assistant. Provide a thorough, clear response to whatever is shown or asked:\n\n${promptText}`
                 }
               ]
             }
@@ -1019,18 +1014,18 @@ Your solution should be efficient, well-commented, and handle edge cases.
         
         const messages = [
           {
-            role: "system" as const, 
-            content: `You are a coding interview assistant helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed debugging help.
+            role: "system" as const,
+            content: `You are a general-purpose visual analysis assistant. Analyze these additional screenshots in the context of the original query and provide a thorough follow-up analysis.
 
 Your response MUST follow this exact structure with these section headers (use ### for headers):
 ### Issues Identified
-- List each issue as a bullet point with clear explanation
+- List each issue or discrepancy as a bullet point with clear explanation
 
 ### Specific Improvements and Corrections
-- List specific code changes needed as bullet points
+- List specific changes or corrections needed as bullet points
 
 ### Optimizations
-- List any performance optimizations if applicable
+- List any optimizations or improvements if applicable
 
 ### Explanation of Changes Needed
 Here provide a clear explanation of why the changes are needed
@@ -1044,12 +1039,12 @@ If you include code examples, use proper markdown code blocks with language spec
             role: "user" as const,
             content: [
               {
-                type: "text" as const, 
-                text: `I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help with debugging or improving my solution. Here are screenshots of my code, the errors or test cases. Please provide a detailed analysis with:
-1. What issues you found in my code
+                type: "text" as const,
+                text: `The original query was: "${problemInfo.query_description}". Here are additional screenshots for follow-up analysis. Please provide a detailed analysis with:
+1. What issues or discrepancies you found
 2. Specific improvements and corrections
-3. Any optimizations that would make the solution better
-4. A clear explanation of the changes needed` 
+3. Any optimizations that would improve the result
+4. A clear explanation of the changes needed`
               },
               ...imageDataList.map(data => ({
                 type: "image_url" as const,
@@ -1084,19 +1079,19 @@ If you include code examples, use proper markdown code blocks with language spec
         
         try {
           const debugPrompt = `
-You are a coding interview assistant helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed debugging help.
+You are a general-purpose visual analysis assistant. Analyze these additional screenshots in the context of the original query and provide a thorough follow-up analysis.
 
-I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help with debugging or improving my solution.
+The original query was: "${problemInfo.query_description}". Here are additional screenshots for follow-up analysis.
 
 YOUR RESPONSE MUST FOLLOW THIS EXACT STRUCTURE WITH THESE SECTION HEADERS:
 ### Issues Identified
-- List each issue as a bullet point with clear explanation
+- List each issue or discrepancy as a bullet point with clear explanation
 
 ### Specific Improvements and Corrections
-- List specific code changes needed as bullet points
+- List specific changes or corrections needed as bullet points
 
 ### Optimizations
-- List any performance optimizations if applicable
+- List any optimizations or improvements if applicable
 
 ### Explanation of Changes Needed
 Here provide a clear explanation of why the changes are needed
@@ -1165,19 +1160,19 @@ If you include code examples, use proper markdown code blocks with language spec
         
         try {
           const debugPrompt = `
-You are a coding interview assistant helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed debugging help.
+You are a general-purpose visual analysis assistant. Analyze these additional screenshots in the context of the original query and provide a thorough follow-up analysis.
 
-I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help with debugging or improving my solution.
+The original query was: "${problemInfo.query_description}". Here are additional screenshots for follow-up analysis.
 
 YOUR RESPONSE MUST FOLLOW THIS EXACT STRUCTURE WITH THESE SECTION HEADERS:
 ### Issues Identified
-- List each issue as a bullet point with clear explanation
+- List each issue or discrepancy as a bullet point with clear explanation
 
 ### Specific Improvements and Corrections
-- List specific code changes needed as bullet points
+- List specific changes or corrections needed as bullet points
 
 ### Optimizations
-- List any performance optimizations if applicable
+- List any optimizations or improvements if applicable
 
 ### Explanation of Changes Needed
 Here provide a clear explanation of why the changes are needed
