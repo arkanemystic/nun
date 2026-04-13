@@ -62,6 +62,11 @@ const modelCategories: ModelCategory[] = [
     ],
     anthropicModels: [
       {
+        id: "claude-sonnet-4-6",
+        name: "Claude Sonnet 4.6",
+        description: "Latest Claude Sonnet model"
+      },
+      {
         id: "claude-3-7-sonnet-20250219",
         name: "Claude 3.7 Sonnet",
         description: "Best overall performance for problem extraction"
@@ -108,6 +113,11 @@ const modelCategories: ModelCategory[] = [
     ],
     anthropicModels: [
       {
+        id: "claude-sonnet-4-6",
+        name: "Claude Sonnet 4.6",
+        description: "Latest Claude Sonnet model"
+      },
+      {
         id: "claude-3-7-sonnet-20250219",
         name: "Claude 3.7 Sonnet",
         description: "Strong overall performance for coding tasks"
@@ -153,6 +163,11 @@ const modelCategories: ModelCategory[] = [
       }
     ],
     anthropicModels: [
+      {
+        id: "claude-sonnet-4-6",
+        name: "Claude Sonnet 4.6",
+        description: "Latest Claude Sonnet model"
+      },
       {
         id: "claude-3-7-sonnet-20250219",
         name: "Claude 3.7 Sonnet",
@@ -248,9 +263,9 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
       setSolutionModel("gemini-1.5-pro");
       setDebuggingModel("gemini-1.5-pro");
     } else if (provider === "anthropic") {
-      setExtractionModel("claude-3-7-sonnet-20250219");
-      setSolutionModel("claude-3-7-sonnet-20250219");
-      setDebuggingModel("claude-3-7-sonnet-20250219");
+      setExtractionModel("claude-sonnet-4-6");
+      setSolutionModel("claude-sonnet-4-6");
+      setDebuggingModel("claude-sonnet-4-6");
     }
   };
 
