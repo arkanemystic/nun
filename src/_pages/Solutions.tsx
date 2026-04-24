@@ -9,6 +9,7 @@ import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import { ProblemStatementData } from "../types/solutions"
 import SolutionCommands from "../components/Solutions/SolutionCommands"
 import Debug from "./Debug"
+import MarkdownRenderer from "../components/shared/MarkdownRenderer"
 import { useToast } from "../contexts/toast"
 import { COMMAND_KEY } from "../utils/platform"
 
@@ -42,12 +43,14 @@ const SolutionSection = ({
   title,
   content,
   isLoading,
-  currentLanguage
+  currentLanguage,
+  displayMode
 }: {
   title: string
   content: React.ReactNode
   isLoading: boolean
   currentLanguage: string
+  displayMode: "code" | "general"
 }) => {
   const [copied, setCopied] = useState(false)
 
@@ -81,22 +84,26 @@ const SolutionSection = ({
           >
             {copied ? "Copied!" : "Copy"}
           </button>
-          <SyntaxHighlighter
-            showLineNumbers
-            language={currentLanguage == "golang" ? "go" : currentLanguage}
-            style={dracula}
-            customStyle={{
-              maxWidth: "100%",
-              margin: 0,
-              padding: "1rem",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-all",
-              backgroundColor: "rgba(22, 27, 34, 0.5)"
-            }}
-            wrapLongLines={true}
-          >
-            {content as string}
-          </SyntaxHighlighter>
+          {displayMode === "general" ? (
+            <MarkdownRenderer content={content as string} />
+          ) : (
+            <SyntaxHighlighter
+              showLineNumbers
+              language={currentLanguage == "golang" ? "go" : currentLanguage}
+              style={dracula}
+              customStyle={{
+                maxWidth: "100%",
+                margin: 0,
+                padding: "1rem",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+                backgroundColor: "rgba(22, 27, 34, 0.5)"
+              }}
+              wrapLongLines={true}
+            >
+              {content as string}
+            </SyntaxHighlighter>
+          )}
         </div>
       )}
     </div>
@@ -170,12 +177,16 @@ export interface SolutionsProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  displayMode: "code" | "general"
+  setDisplayMode: (mode: "code" | "general") => void
 }
 const Solutions: React.FC<SolutionsProps> = ({
   setView,
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  displayMode,
+  setDisplayMode
 }) => {
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
@@ -471,6 +482,7 @@ const Solutions: React.FC<SolutionsProps> = ({
           setIsProcessing={setDebugProcessing}
           currentLanguage={currentLanguage}
           setLanguage={setLanguage}
+          displayMode={displayMode}
         />
       ) : (
         <div ref={contentRef} className="relative">
@@ -550,6 +562,7 @@ const Solutions: React.FC<SolutionsProps> = ({
                       content={solutionData}
                       isLoading={!solutionData}
                       currentLanguage={currentLanguage}
+                      displayMode={displayMode}
                     />
 
                     <ComplexitySection

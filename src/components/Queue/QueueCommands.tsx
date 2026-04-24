@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client"
 
 import { useToast } from "../../contexts/toast"
 import { LanguageSelector } from "../shared/LanguageSelector"
+import DisplayModeToggle from "../shared/DisplayModeToggle"
 import { COMMAND_KEY } from "../../utils/platform"
 
 interface QueueCommandsProps {
@@ -11,6 +12,8 @@ interface QueueCommandsProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  displayMode: "code" | "general"
+  setDisplayMode: (mode: "code" | "general") => void
 }
 
 const QueueCommands: React.FC<QueueCommandsProps> = ({
@@ -18,7 +21,9 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
   screenshotCount = 0,
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  displayMode,
+  setDisplayMode
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -193,6 +198,9 @@ const QueueCommands: React.FC<QueueCommandsProps> = ({
               </div>
             </div>
           )}
+
+          {/* Display Mode Toggle */}
+          <DisplayModeToggle displayMode={displayMode} setDisplayMode={setDisplayMode} />
 
           {/* Separator */}
           <div className="mx-2 h-4 w-px bg-white/20" />

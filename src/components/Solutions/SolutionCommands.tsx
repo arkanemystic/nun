@@ -3,6 +3,7 @@ import { useToast } from "../../contexts/toast"
 import { Screenshot } from "../../types/screenshots"
 import { supabase } from "../../lib/supabase"
 import { LanguageSelector } from "../shared/LanguageSelector"
+import DisplayModeToggle from "../shared/DisplayModeToggle"
 import { COMMAND_KEY } from "../../utils/platform"
 
 export interface SolutionCommandsProps {
@@ -13,6 +14,8 @@ export interface SolutionCommandsProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  displayMode: "code" | "general"
+  setDisplayMode: (mode: "code" | "general") => void
 }
 
 const handleSignOut = async () => {
@@ -35,7 +38,9 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
   extraScreenshots = [],
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  displayMode,
+  setDisplayMode
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -191,6 +196,9 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Display Mode Toggle */}
+          <DisplayModeToggle displayMode={displayMode} setDisplayMode={setDisplayMode} />
 
           {/* Separator */}
           <div className="mx-2 h-4 w-px bg-white/20" />

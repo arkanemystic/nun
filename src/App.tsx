@@ -41,6 +41,7 @@ function App() {
   })
   const [credits, setCredits] = useState<number>(999) // Unlimited credits
   const [currentLanguage, setCurrentLanguage] = useState<string>("python")
+  const [displayMode, setDisplayMode] = useState<"code" | "general">("code")
   const [isInitialized, setIsInitialized] = useState(false)
   const [hasApiKey, setHasApiKey] = useState(false)
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false)
@@ -58,6 +59,11 @@ function App() {
   const updateLanguage = useCallback((newLanguage: string) => {
     setCurrentLanguage(newLanguage)
     window.__LANGUAGE__ = newLanguage
+  }, [])
+
+  // Helper function to safely update display mode
+  const updateDisplayMode = useCallback((newMode: "code" | "general") => {
+    setDisplayMode(newMode)
   }, [])
 
   // Helper function to mark initialization complete
@@ -164,10 +170,17 @@ function App() {
         } else {
           updateLanguage("python")
         }
-        
+
+        // Load display mode preference
+        if (config && config.displayMode) {
+          updateDisplayMode(config.displayMode)
+        } else {
+          updateDisplayMode("code")
+        }
+
         // Model settings are now managed through the settings dialog
         // and stored in config as extractionModel, solutionModel, and debuggingModel
-        
+
         markInitialized()
       } catch (error) {
         console.error("Failed to initialize app:", error)
@@ -247,6 +260,8 @@ function App() {
                   credits={credits}
                   currentLanguage={currentLanguage}
                   setLanguage={updateLanguage}
+                  displayMode={displayMode}
+                  setDisplayMode={updateDisplayMode}
                 />
               ) : (
                 <WelcomeScreen onOpenSettings={handleOpenSettings} />

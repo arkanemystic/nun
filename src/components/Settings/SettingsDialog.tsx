@@ -199,6 +199,7 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
   const [extractionModel, setExtractionModel] = useState("gpt-4o");
   const [solutionModel, setSolutionModel] = useState("gpt-4o");
   const [debuggingModel, setDebuggingModel] = useState("gpt-4o");
+  const [displayMode, setDisplayMode] = useState<"code" | "general">("code");
   const [isLoading, setIsLoading] = useState(false);
   const { showToast } = useToast();
 
@@ -228,6 +229,7 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
         extractionModel?: string;
         solutionModel?: string;
         debuggingModel?: string;
+        displayMode?: "code" | "general";
       }
 
       window.electronAPI
@@ -238,6 +240,7 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
           setExtractionModel(config.extractionModel || "gpt-4o");
           setSolutionModel(config.solutionModel || "gpt-4o");
           setDebuggingModel(config.debuggingModel || "gpt-4o");
+          setDisplayMode(config.displayMode || "code");
         })
         .catch((error: unknown) => {
           console.error("Failed to load config:", error);
@@ -278,6 +281,7 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
         extractionModel,
         solutionModel,
         debuggingModel,
+        displayMode,
       });
       
       if (result) {
@@ -471,7 +475,54 @@ export function SettingsDialog({ open: externalOpen, onOpenChange }: SettingsDia
               )}
             </div>
           </div>
-          
+
+          {/* Display Mode Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white">Display Mode</label>
+            <div className="flex gap-2">
+              <div
+                className={`flex-1 p-3 rounded-lg cursor-pointer transition-colors ${
+                  displayMode === "code"
+                    ? "bg-white/10 border border-white/20"
+                    : "bg-black/30 border border-white/5 hover:bg-white/5"
+                }`}
+                onClick={() => setDisplayMode("code")}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-3 h-3 rounded-full ${
+                      displayMode === "code" ? "bg-white" : "bg-white/20"
+                    }`}
+                  />
+                  <div className="flex flex-col">
+                    <p className="font-medium text-white text-sm">Code</p>
+                    <p className="text-xs text-white/60">Syntax-highlighted code blocks</p>
+                  </div>
+                </div>
+              </div>
+              <div
+                className={`flex-1 p-3 rounded-lg cursor-pointer transition-colors ${
+                  displayMode === "general"
+                    ? "bg-white/10 border border-white/20"
+                    : "bg-black/30 border border-white/5 hover:bg-white/5"
+                }`}
+                onClick={() => setDisplayMode("general")}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-3 h-3 rounded-full ${
+                      displayMode === "general" ? "bg-white" : "bg-white/20"
+                    }`}
+                  />
+                  <div className="flex flex-col">
+                    <p className="font-medium text-white text-sm">General</p>
+                    <p className="text-xs text-white/60">Markdown with LaTeX</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2 mt-4">
             <label className="text-sm font-medium text-white mb-2 block">Keyboard Shortcuts</label>
             <div className="bg-black/30 border border-white/10 rounded-lg p-3">

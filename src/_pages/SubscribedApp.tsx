@@ -9,12 +9,16 @@ interface SubscribedAppProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  displayMode: "code" | "general"
+  setDisplayMode: (mode: "code" | "general") => void
 }
 
 const SubscribedApp: React.FC<SubscribedAppProps> = ({
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  displayMode,
+  setDisplayMode
 }) => {
   const queryClient = useQueryClient()
   const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
@@ -142,6 +146,8 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
           credits={credits}
           currentLanguage={currentLanguage}
           setLanguage={setLanguage}
+          displayMode={displayMode}
+          setDisplayMode={setDisplayMode}
         />
       ) : view === "solutions" ? (
         <Solutions
@@ -149,6 +155,8 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
           credits={credits}
           currentLanguage={currentLanguage}
           setLanguage={setLanguage}
+          displayMode={displayMode}
+          setDisplayMode={setDisplayMode}
         />
       ) : null}
     </div>

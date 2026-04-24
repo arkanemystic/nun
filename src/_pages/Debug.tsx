@@ -5,6 +5,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism"
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
 import SolutionCommands from "../components/Solutions/SolutionCommands"
+import MarkdownRenderer from "../components/shared/MarkdownRenderer"
 import { Screenshot } from "../types/screenshots"
 import { ComplexitySection, ContentSection } from "./Solutions"
 import { useToast } from "../contexts/toast"
@@ -13,12 +14,14 @@ const CodeSection = ({
   title,
   code,
   isLoading,
-  currentLanguage
+  currentLanguage,
+  displayMode
 }: {
   title: string
   code: React.ReactNode
   isLoading: boolean
   currentLanguage: string
+  displayMode: "code" | "general"
 }) => (
   <div className="space-y-2">
     <h2 className="text-[13px] font-medium text-white tracking-wide"></h2>
@@ -32,22 +35,26 @@ const CodeSection = ({
       </div>
     ) : (
       <div className="w-full">
-        <SyntaxHighlighter
-          showLineNumbers
-          language={currentLanguage == "golang" ? "go" : currentLanguage}
-          style={dracula}
-          customStyle={{
-            maxWidth: "100%",
-            margin: 0,
-            padding: "1rem",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-all",
-            backgroundColor: "rgba(22, 27, 34, 0.5)"
-          }}
-          wrapLongLines={true}
-        >
-          {code as string}
-        </SyntaxHighlighter>
+        {displayMode === "general" ? (
+          <MarkdownRenderer content={code as string} />
+        ) : (
+          <SyntaxHighlighter
+            showLineNumbers
+            language={currentLanguage == "golang" ? "go" : currentLanguage}
+            style={dracula}
+            customStyle={{
+              maxWidth: "100%",
+              margin: 0,
+              padding: "1rem",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-all",
+              backgroundColor: "rgba(22, 27, 34, 0.5)"
+            }}
+            wrapLongLines={true}
+          >
+            {code as string}
+          </SyntaxHighlighter>
+        )}
       </div>
     )}
   </div>
@@ -74,13 +81,15 @@ interface DebugProps {
   setIsProcessing: (isProcessing: boolean) => void
   currentLanguage: string
   setLanguage: (language: string) => void
+  displayMode: "code" | "general"
 }
 
 const Debug: React.FC<DebugProps> = ({
   isProcessing,
   setIsProcessing,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  displayMode
 }) => {
   const [tooltipVisible, setTooltipVisible] = useState(false)
   const [tooltipHeight, setTooltipHeight] = useState(0)
@@ -283,6 +292,8 @@ const Debug: React.FC<DebugProps> = ({
         credits={window.__CREDITS__}
         currentLanguage={currentLanguage}
         setLanguage={setLanguage}
+        displayMode={displayMode}
+        setDisplayMode={() => {}}
       />
 
       {/* Main Content */}
@@ -315,6 +326,7 @@ const Debug: React.FC<DebugProps> = ({
               code={newCode}
               isLoading={!newCode}
               currentLanguage={currentLanguage}
+              displayMode={displayMode}
             />
             
             {/* Debug Analysis Section */}
@@ -328,6 +340,8 @@ const Debug: React.FC<DebugProps> = ({
                     </p>
                   </div>
                 </div>
+              ) : displayMode === "general" ? (
+                <MarkdownRenderer content={debugAnalysis} />
               ) : (
                 <div className="w-full bg-black/30 rounded-md p-4 text-[13px] leading-[1.4] text-gray-100 whitespace-pre-wrap overflow-auto max-h-[600px]">
                   {/* Process the debug analysis text by sections and lines */}
