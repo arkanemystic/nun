@@ -477,7 +477,7 @@ export class ProcessingHelper {
         const messages = [
           {
             role: "system" as const,
-            content: "You are a general-purpose visual analysis assistant. Analyze the screenshot(s) and extract all relevant information shown. Return the information in JSON format with these fields: query_description (a full description of what is shown or asked), context (any relevant context, constraints, or details), example_input (if applicable, otherwise empty string), example_output (if applicable, otherwise empty string). Just return the structured JSON without any other text."
+            content: "You are a general-purpose visual analysis assistant. Analyze the screenshot(s) and extract all relevant information shown. If the content includes mathematical problems or notation, preserve it accurately. Return the information in JSON format with these fields: query_description (a full description of what is shown or asked, preserving mathematical notation), context (any relevant context, constraints, or details), example_input (if applicable, otherwise empty string), example_output (if applicable, otherwise empty string). Just return the structured JSON without any other text."
           },
           {
             role: "user" as const,
@@ -531,7 +531,7 @@ export class ProcessingHelper {
               role: "user",
               parts: [
                 {
-                  text: `You are a general-purpose visual analysis assistant. Analyze the screenshots and extract all relevant information shown. Return the information in JSON format with these fields: query_description (a full description of what is shown or asked), context (any relevant context, constraints, or details), example_input (if applicable, otherwise empty string), example_output (if applicable, otherwise empty string). Just return the structured JSON without any other text.`
+                  text: `You are a general-purpose visual analysis assistant. Analyze the screenshots and extract all relevant information shown. If the content includes mathematical problems or notation, preserve it accurately. Return the information in JSON format with these fields: query_description (a full description of what is shown or asked, preserving mathematical notation), context (any relevant context, constraints, or details), example_input (if applicable, otherwise empty string), example_output (if applicable, otherwise empty string). Just return the structured JSON without any other text.`
                 },
                 ...imageDataList.map(data => ({
                   inlineData: {
@@ -589,7 +589,7 @@ export class ProcessingHelper {
               content: [
                 {
                   type: "text" as const,
-                  text: `Analyze these screenshots and return a JSON with these fields: query_description (a full description of what is shown or asked), context (any relevant context, constraints, or details), example_input (if applicable, otherwise empty string), example_output (if applicable, otherwise empty string). Just return the structured JSON without any other text.`
+                  text: `Analyze these screenshots and return a JSON with these fields: query_description (a full description of what is shown or asked, preserving mathematical notation), context (any relevant context, constraints, or details), example_input (if applicable, otherwise empty string), example_output (if applicable, otherwise empty string). Just return the structured JSON without any other text.`
                 },
                 ...imageDataList.map(data => ({
                   type: "image" as const,
@@ -736,7 +736,7 @@ export class ProcessingHelper {
 
       // Create prompt for response generation
       const promptText = `
-Provide a thorough response/answer to the following query based on the screenshot analysis:
+Provide a thorough, well-justified response/answer to the following query based on the screenshot analysis:
 
 QUERY DESCRIPTION:
 ${problemInfo.query_description}
@@ -751,10 +751,21 @@ EXAMPLE OUTPUT:
 ${problemInfo.example_output || "Not applicable."}
 
 I need the response in the following format:
-1. Response: A thorough and complete answer or solution to what is shown/asked
-2. Your Thoughts: A list of key insights and reasoning behind your approach
-3. Time complexity: If applicable, O(X) with a detailed explanation; otherwise "N/A - not applicable for this type of query"
-4. Space complexity: If applicable, O(X) with a detailed explanation; otherwise "N/A - not applicable for this type of query"
+
+1. Answer/Response: Provide a clear, direct answer to what is being asked
+   - For multiple choice: State the correct option and provide detailed justification for why this answer is correct and why other options are incorrect
+   - For open-ended questions: Provide a comprehensive, well-reasoned response
+   - For mathematical/scientific content: Use step-by-step derivations with clear intermediate steps
+   - For all math expressions: Use LaTeX notation with $...$ for inline math and $$...$$ for display math
+   - Always explain the reasoning behind your answer
+
+2. Justification & Reasoning: A detailed explanation of:
+   - Why this answer is correct
+   - Key concepts or principles that support this answer
+   - Any relevant evidence, examples, or logic
+   - If applicable: why alternative answers are incorrect
+
+3. Key Takeaways: A concise summary of the most important points from this answer
 `;
 
       let responseContent;
@@ -772,7 +783,7 @@ I need the response in the following format:
         const solutionResponse = await this.openaiClient.chat.completions.create({
           model: config.solutionModel || "gpt-4o",
           messages: [
-            { role: "system", content: "You are a general-purpose visual analysis assistant. Provide thorough, clear responses to whatever is shown or asked in the screenshots." },
+            { role: "system", content: "You are an expert assistant at providing clear, well-justified answers to any type of question. For every answer, provide thorough reasoning and justification. If it's a multiple choice question, clearly state why the correct answer is right and why other options are wrong. Format all mathematical expressions using LaTeX notation with $...$ for inline math and $$...$$ for display math. Be precise, logical, and human-friendly in your explanations." },
             { role: "user", content: promptText }
           ],
           max_tokens: 4000,
@@ -796,7 +807,7 @@ I need the response in the following format:
               role: "user",
               parts: [
                 {
-                  text: `You are a general-purpose visual analysis assistant. Provide a thorough, clear response to whatever is shown or asked:\n\n${promptText}`
+                  text: `You are an expert assistant at providing clear, well-justified answers to any type of question. For every answer, provide thorough reasoning and justification. If it's a multiple choice question, clearly state why the correct answer is right and why other options are wrong. Format all mathematical expressions using LaTeX notation with $...$ for inline math and $$...$$ for display math. Be precise, logical, and human-friendly in your explanations.\n\n${promptText}`
                 }
               ]
             }
@@ -855,6 +866,7 @@ I need the response in the following format:
           const response = await this.anthropicClient.messages.create({
             model: config.solutionModel || "claude-sonnet-4-6",
             max_tokens: 4000,
+            system: "You are an expert assistant at providing clear, well-justified answers to any type of question. For every answer, provide thorough reasoning and justification. If it's a multiple choice question, clearly state why the correct answer is right and why other options are wrong. Format all mathematical expressions using LaTeX notation with $...$ for inline math and $$...$$ for display math. Be precise, logical, and human-friendly in your explanations.",
             messages: messages,
             temperature: 0.2
           });
@@ -883,72 +895,54 @@ I need the response in the following format:
         }
       }
       
-      // Extract parts from the response
+      // Extract answer/code from the response (look for code blocks first)
       const codeMatch = responseContent.match(/```(?:\w+)?\s*([\s\S]*?)```/);
       const code = codeMatch ? codeMatch[1].trim() : responseContent;
-      
-      // Extract thoughts, looking for bullet points or numbered lists
-      const thoughtsRegex = /(?:Thoughts:|Key Insights:|Reasoning:|Approach:)([\s\S]*?)(?:Time complexity:|$)/i;
-      const thoughtsMatch = responseContent.match(thoughtsRegex);
+
+      // Extract justification section
+      const justificationRegex = /(?:Justification|Justification & Reasoning):([\s\S]*?)(?=\n\n### Key Takeaways|$)/i;
+      const justificationMatch = responseContent.match(justificationRegex);
+      let justification = "";
+
+      if (justificationMatch && justificationMatch[1]) {
+        justification = justificationMatch[1].trim();
+      } else {
+        // Fallback: use the full response if no section headers found
+        justification = responseContent.substring(0, 1000);
+      }
+
+      // Extract key takeaways/thoughts
+      const takeawaysRegex = /(?:Key Takeaways|Key Points):([\s\S]*?)(?=\n\n###|$)/i;
+      const takeawaysMatch = responseContent.match(takeawaysRegex);
       let thoughts: string[] = [];
-      
-      if (thoughtsMatch && thoughtsMatch[1]) {
+
+      if (takeawaysMatch && takeawaysMatch[1]) {
         // Extract bullet points or numbered items
-        const bulletPoints = thoughtsMatch[1].match(/(?:^|\n)\s*(?:[-*•]|\d+\.)\s*(.*)/g);
+        const bulletPoints = takeawaysMatch[1].match(/(?:^|\n)\s*(?:[-*•]|\d+\.)\s*(.*)/g);
         if (bulletPoints) {
-          thoughts = bulletPoints.map(point => 
+          thoughts = bulletPoints.map(point =>
             point.replace(/^\s*(?:[-*•]|\d+\.)\s*/, '').trim()
           ).filter(Boolean);
         } else {
           // If no bullet points found, split by newlines and filter empty lines
-          thoughts = thoughtsMatch[1].split('\n')
+          thoughts = takeawaysMatch[1].split('\n')
             .map((line) => line.trim())
             .filter(Boolean);
         }
       }
-      
-      // Extract complexity information
-      const timeComplexityPattern = /Time complexity:?\s*([^\n]+(?:\n[^\n]+)*?)(?=\n\s*(?:Space complexity|$))/i;
-      const spaceComplexityPattern = /Space complexity:?\s*([^\n]+(?:\n[^\n]+)*?)(?=\n\s*(?:[A-Z]|$))/i;
-      
-      let timeComplexity = "O(n) - Linear time complexity because we only iterate through the array once. Each element is processed exactly one time, and the hashmap lookups are O(1) operations.";
-      let spaceComplexity = "O(n) - Linear space complexity because we store elements in the hashmap. In the worst case, we might need to store all elements before finding the solution pair.";
-      
-      const timeMatch = responseContent.match(timeComplexityPattern);
-      if (timeMatch && timeMatch[1]) {
-        timeComplexity = timeMatch[1].trim();
-        if (!timeComplexity.match(/O\([^)]+\)/i)) {
-          timeComplexity = `O(n) - ${timeComplexity}`;
-        } else if (!timeComplexity.includes('-') && !timeComplexity.includes('because')) {
-          const notationMatch = timeComplexity.match(/O\([^)]+\)/i);
-          if (notationMatch) {
-            const notation = notationMatch[0];
-            const rest = timeComplexity.replace(notation, '').trim();
-            timeComplexity = `${notation} - ${rest}`;
-          }
-        }
-      }
-      
-      const spaceMatch = responseContent.match(spaceComplexityPattern);
-      if (spaceMatch && spaceMatch[1]) {
-        spaceComplexity = spaceMatch[1].trim();
-        if (!spaceComplexity.match(/O\([^)]+\)/i)) {
-          spaceComplexity = `O(n) - ${spaceComplexity}`;
-        } else if (!spaceComplexity.includes('-') && !spaceComplexity.includes('because')) {
-          const notationMatch = spaceComplexity.match(/O\([^)]+\)/i);
-          if (notationMatch) {
-            const notation = notationMatch[0];
-            const rest = spaceComplexity.replace(notation, '').trim();
-            spaceComplexity = `${notation} - ${rest}`;
-          }
-        }
+
+      // If no key takeaways found, extract the first few sentences from justification
+      if (thoughts.length === 0 && justification) {
+        const sentences = justification.match(/[^.!?]+[.!?]+/g) || [];
+        thoughts = sentences.slice(0, 3).map(s => s.trim()).filter(Boolean);
       }
 
       const formattedResponse = {
         code: code,
-        thoughts: thoughts.length > 0 ? thoughts : ["Solution approach based on efficiency and readability"],
-        time_complexity: timeComplexity,
-        space_complexity: spaceComplexity
+        justification: justification,
+        thoughts: thoughts.length > 0 ? thoughts : ["See justification above for detailed reasoning"],
+        time_complexity: "N/A",
+        space_complexity: "N/A"
       };
 
       return { success: true, data: formattedResponse };
@@ -1015,25 +1009,26 @@ I need the response in the following format:
         const messages = [
           {
             role: "system" as const,
-            content: `You are a general-purpose visual analysis assistant. Analyze these additional screenshots in the context of the original query and provide a thorough follow-up analysis.
+            content: `You are an expert assistant at analyzing responses and providing constructive feedback. Analyze these additional screenshots in the context of the original query and provide a thorough evaluation and feedback.
 
 Your response MUST follow this exact structure with these section headers (use ### for headers):
-### Issues Identified
-- List each issue or discrepancy as a bullet point with clear explanation
+### Issues or Discrepancies Identified
+- List each issue or error found in the presented answer/response as a bullet point with clear explanation
 
-### Specific Improvements and Corrections
-- List specific changes or corrections needed as bullet points
+### Corrections and Improvements
+- List specific corrections or improvements needed as bullet points
 
-### Optimizations
-- List any optimizations or improvements if applicable
+### Strengths (if any)
+- List any strengths or correct aspects of the answer if applicable
 
-### Explanation of Changes Needed
-Here provide a clear explanation of why the changes are needed
+### Detailed Explanation
+Here provide a clear, logical explanation of the feedback and corrections
 
-### Key Points
-- Summary bullet points of the most important takeaways
+### Key Takeaways
+- Summary bullet points of the most important points to understand
 
-If you include code examples, use proper markdown code blocks with language specification (e.g. \`\`\`java).`
+If you include code examples, use proper markdown code blocks with language specification (e.g. \`\`\`java).
+For mathematical content, use LaTeX notation with $...$ for inline math and $$...$$ for display math.`
           },
           {
             role: "user" as const,
@@ -1079,27 +1074,28 @@ If you include code examples, use proper markdown code blocks with language spec
         
         try {
           const debugPrompt = `
-You are a general-purpose visual analysis assistant. Analyze these additional screenshots in the context of the original query and provide a thorough follow-up analysis.
+You are an expert assistant at analyzing responses and providing constructive feedback. Analyze these additional screenshots in the context of the original query and provide a thorough evaluation and feedback.
 
 The original query was: "${problemInfo.query_description}". Here are additional screenshots for follow-up analysis.
 
 YOUR RESPONSE MUST FOLLOW THIS EXACT STRUCTURE WITH THESE SECTION HEADERS:
-### Issues Identified
-- List each issue or discrepancy as a bullet point with clear explanation
+### Issues or Discrepancies Identified
+- List each issue or error found in the presented answer/response as a bullet point with clear explanation
 
-### Specific Improvements and Corrections
-- List specific changes or corrections needed as bullet points
+### Corrections and Improvements
+- List specific corrections or improvements needed as bullet points
 
-### Optimizations
-- List any optimizations or improvements if applicable
+### Strengths (if any)
+- List any strengths or correct aspects of the answer if applicable
 
-### Explanation of Changes Needed
-Here provide a clear explanation of why the changes are needed
+### Detailed Explanation
+Here provide a clear, logical explanation of the feedback and corrections
 
-### Key Points
-- Summary bullet points of the most important takeaways
+### Key Takeaways
+- Summary bullet points of the most important points to understand
 
 If you include code examples, use proper markdown code blocks with language specification (e.g. \`\`\`java).
+For mathematical content, use LaTeX notation with $...$ for inline math and $$...$$ for display math.
 `;
 
           const geminiMessages = [
@@ -1160,27 +1156,28 @@ If you include code examples, use proper markdown code blocks with language spec
         
         try {
           const debugPrompt = `
-You are a general-purpose visual analysis assistant. Analyze these additional screenshots in the context of the original query and provide a thorough follow-up analysis.
+You are an expert assistant at analyzing responses and providing constructive feedback. Analyze these additional screenshots in the context of the original query and provide a thorough evaluation and feedback.
 
 The original query was: "${problemInfo.query_description}". Here are additional screenshots for follow-up analysis.
 
 YOUR RESPONSE MUST FOLLOW THIS EXACT STRUCTURE WITH THESE SECTION HEADERS:
-### Issues Identified
-- List each issue or discrepancy as a bullet point with clear explanation
+### Issues or Discrepancies Identified
+- List each issue or error found in the presented answer/response as a bullet point with clear explanation
 
-### Specific Improvements and Corrections
-- List specific changes or corrections needed as bullet points
+### Corrections and Improvements
+- List specific corrections or improvements needed as bullet points
 
-### Optimizations
-- List any optimizations or improvements if applicable
+### Strengths (if any)
+- List any strengths or correct aspects of the answer if applicable
 
-### Explanation of Changes Needed
-Here provide a clear explanation of why the changes are needed
+### Detailed Explanation
+Here provide a clear, logical explanation of the feedback and corrections
 
-### Key Points
-- Summary bullet points of the most important takeaways
+### Key Takeaways
+- Summary bullet points of the most important points to understand
 
 If you include code examples, use proper markdown code blocks with language specification.
+For mathematical content, use LaTeX notation with $...$ for inline math and $$...$$ for display math.
 `;
 
           const messages = [

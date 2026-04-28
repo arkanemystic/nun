@@ -17,7 +17,21 @@ export default defineConfig({
             sourcemap: true,
             minify: false,
             rollupOptions: {
-              external: ["electron"]
+              external: [
+                "electron",
+                "openai",
+                "@anthropic-ai/sdk",
+                "axios",
+                "screenshot-desktop",
+                "dotenv",
+                "electron-store",
+                "electron-log",
+                "electron-updater",
+                "@electron/notarize",
+                "uuid",
+                "form-data",
+                "diff"
+              ]
             }
           }
         }
@@ -48,7 +62,8 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
-    sourcemap: true
+    sourcemap: true,
+    chunkSizeWarningLimit: 1000
   },
   resolve: {
     alias: {
